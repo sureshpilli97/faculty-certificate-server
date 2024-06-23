@@ -154,7 +154,7 @@ app.get('/retrieve', async (req, res) => {
       f.faculty_id = fc.faculty_id`;
 
   if (conditions) {
-    query += ` WHERE ${conditions}`;
+    query += ` WHERE f.${conditions}`;
   }
 
   try {
