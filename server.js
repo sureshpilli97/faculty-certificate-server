@@ -136,6 +136,38 @@ app.get('/count', async (req, res) => {
   }
 });
 
+app.get('/retrieve', async (req, res) => {
+  const { conditions } = req.query;
+  let query = `SELECT 
+      f.faculty_id,
+      f.name,
+      f.branch,
+      f.email,
+      fc.certificate_name,
+      fc.type_of_certification,
+      fc.certificate_url
+    FROM 
+      faculty f
+    LEFT JOIN 
+      faculty_certificates fc
+    ON 
+      f.faculty_id = fc.faculty_id`;
+
+  if (conditions) {
+    query += ` WHERE ${conditions}`;
+  }
+
+  try {
+    const db = await connectToDatabase();
+    const [result] = await db.execute(query);
+    await db.end();
+    res.status(200).send(result);
+  } catch (err) {
+    console.error('Failed to retrieve combined data:', err);
+    res.status(500).send({ error: 'Failed to retrieve combined data.' });
+  }
+});
+
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log('Server is running...');
