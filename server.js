@@ -143,6 +143,7 @@ app.get('/retrieve', async (req, res) => {
       f.name,
       f.branch,
       f.email,
+      fc.id,  
       fc.certificate_name,
       fc.type_of_certification,
       fc.certificate_url
