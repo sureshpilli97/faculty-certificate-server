@@ -34,12 +34,12 @@ app.get('/', (req, res) => {
 });
 
 app.post('/insert', async (req, res) => {
-  const { faculty_id, name, branch, email } = req.body;
-  const query = 'INSERT INTO faculty (faculty_id, name, branch, email) VALUES (?, ?, ?, ?)';
+  const { faculty_id, name, branch, email, faculty_qualification } = req.body;
+  const query = 'INSERT INTO faculty (faculty_id, name, branch, email, faculty_qualification) VALUES (?, ?, ?, ?, ?)';
 
   try {
     const db = await connectToDatabase();
-    const [result] = await db.execute(query, [faculty_id, name, branch, email]);
+    const [result] = await db.execute(query, [faculty_id, name, branch, email, faculty_qualification]);
     await db.end();
     res.status(201).send({ message: 'Faculty details inserted successfully!' });
   } catch (err) {
@@ -48,13 +48,14 @@ app.post('/insert', async (req, res) => {
   }
 });
 
+
 app.post('/upload', async (req, res) => {
-  const { faculty_id, certificate_name, type_of_certification, certificate_url } = req.body;
-  const query = 'INSERT INTO faculty_certificates (faculty_id, certificate_name, type_of_certification, certificate_url) VALUES (?, ?, ?, ?)';
+  const { faculty_id, certificate_name, type_of_certification, certificate_url, year_of_completion } = req.body;
+  const query = 'INSERT INTO faculty_certificates (faculty_id, certificate_name, type_of_certification, certificate_url, year_of_completion) VALUES (?, ?, ?, ?, ?)';
 
   try {
     const db = await connectToDatabase();
-    const [result] = await db.execute(query, [faculty_id, certificate_name, type_of_certification, certificate_url]);
+    const [result] = await db.execute(query, [faculty_id, certificate_name, type_of_certification, certificate_url, year_of_completion]);
     await db.end();
     res.status(201).send({ message: 'Certificate details inserted successfully!' });
   } catch (err) {
@@ -63,12 +64,13 @@ app.post('/upload', async (req, res) => {
   }
 });
 
+
 app.get('/retrieve_faculty', async (req, res) => {
   const { conditions, columns } = req.query;
   let query = 'SELECT ';
 
   if (columns) {
-    query += `${columns}`;
+    query += mysql.escapeId(columns);
   } else {
     query += '*';
   }
@@ -76,7 +78,10 @@ app.get('/retrieve_faculty', async (req, res) => {
   query += ' FROM faculty';
 
   if (conditions) {
-    query += ` WHERE ${conditions}`;
+    query += ` WHERE ${conditions.split(' AND ').map(condition => {
+      const [column, value] = condition.split('=');
+      return `${mysql.escapeId(column.trim())} = ${mysql.escape(value.trim().replace(/'/g, ''))}`;
+    }).join(' AND ')}`;
   }
 
   try {
@@ -90,12 +95,14 @@ app.get('/retrieve_faculty', async (req, res) => {
   }
 });
 
+
+
 app.get('/retrieve_certificates', async (req, res) => {
   const { conditions, columns } = req.query;
   let query = 'SELECT ';
 
   if (columns) {
-    query += `${columns}`;
+    query += mysql.escapeId(columns);
   } else {
     query += '*';
   }
@@ -103,7 +110,10 @@ app.get('/retrieve_certificates', async (req, res) => {
   query += ' FROM faculty_certificates';
 
   if (conditions) {
-    query += ` WHERE ${conditions}`;
+    query += ` WHERE ${conditions.split(' AND ').map(condition => {
+      const [column, value] = condition.split('=');
+      return `${mysql.escapeId(column.trim())} = ${mysql.escape(value.trim().replace(/'/g, ''))}`;
+    }).join(' AND ')}`;
   }
 
   try {
@@ -116,6 +126,8 @@ app.get('/retrieve_certificates', async (req, res) => {
     res.status(500).send({ error: 'Failed to retrieve certificate data.' });
   }
 });
+
+
 
 app.get('/count', async (req, res) => {
   const { conditions } = req.query;
@@ -143,10 +155,12 @@ app.get('/retrieve', async (req, res) => {
       f.name,
       f.branch,
       f.email,
+      f.faculty_qualification,
       fc.id,  
       fc.certificate_name,
       fc.type_of_certification,
-      fc.certificate_url
+      fc.certificate_url,
+      fc.year_of_completion
     FROM 
       faculty f
     LEFT JOIN 
@@ -155,7 +169,10 @@ app.get('/retrieve', async (req, res) => {
       f.faculty_id = fc.faculty_id`;
 
   if (conditions) {
-    query += ` WHERE f.${conditions}`;
+    query += ` WHERE ${conditions.split(' AND ').map(condition => {
+      const [column, value] = condition.split('=');
+      return `${mysql.escapeId(column.trim())} = ${mysql.escape(value.trim().replace(/'/g, ''))}`;
+    }).join(' AND ')}`;
   }
 
   try {
@@ -168,6 +185,8 @@ app.get('/retrieve', async (req, res) => {
     res.status(500).send({ error: 'Failed to retrieve combined data.' });
   }
 });
+
+
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
